@@ -13,7 +13,11 @@ class BlogController extends Controller
     // This method will return all blogs
     public function index()
     {
-
+        $blogs = MyModel::orderBy('created_at','DESC')->get();
+        return response()->json([
+            'status' => true,
+            'data' => $blogs
+        ]);
     }
 
     // This method will return a single blog

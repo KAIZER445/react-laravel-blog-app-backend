@@ -10,5 +10,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::post('blog', [BlogController::class,'store']);
+Route::get('blog', [BlogController::class,'index']);
+
 Route::post('save-temp-image', [TempImageController::class,'store']);
 
