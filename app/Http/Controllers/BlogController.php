@@ -21,9 +21,14 @@ class BlogController extends Controller
     }
 
     // This method will return a single blog
-    public function show()
+    public function show($id)
     {
-
+        $blog = MyModel::find($id);
+        $blog['date'] = \Carbon\Carbon::parse($blog->created_at)->format('d M, Y');
+        return response()->json([
+            'status' => true,
+            'data' => $blog
+        ]);
     }
 
     // This method will insert blogs
