@@ -12,6 +12,7 @@ Route::get('/user', function (Request $request) {
 Route::post('blog', [BlogController::class,'store']);
 Route::get('blog', [BlogController::class,'index']);
 Route::get('blog/{id}', [BlogController::class,'show']);
+Route::put('blog/{id}', [BlogController::class,'update']);
 
 Route::post('save-temp-image', [TempImageController::class,'store']);
 

@@ -13,7 +13,7 @@ class BlogController extends Controller
     // This method will return all blogs
     public function index()
     {
-        $blogs = MyModel::orderBy('created_at','DESC')->get();
+        $blogs = MyModel::orderBy('created_at', 'DESC')->get();
         return response()->json([
             'status' => true,
             'data' => $blogs
@@ -58,18 +58,18 @@ class BlogController extends Controller
 
             $tempImage = TempImage::find($request->image_id);
 
-            if($tempImage!=null) {
+            if ($tempImage != null) {
 
-                $imageExtArray = explode('.',$tempImage->name);
+                $imageExtArray = explode('.', $tempImage->name);
                 $ext = last($imageExtArray);
-                $imageName = time().'-'.$blog->id.'.'.$ext;
+                $imageName = time() . '-' . $blog->id . '.' . $ext;
 
                 $blog->image = $imageName;
                 $blog->save();
 
 
-                $sourcePath = public_path('uploads/temp/'.$tempImage->name);
-                $destPath = public_path('uploads/blogs/'.$imageName);
+                $sourcePath = public_path('uploads/temp/' . $tempImage->name);
+                $destPath = public_path('uploads/blogs/' . $imageName);
                 File::copy($sourcePath, $destPath);
             }
 
@@ -88,8 +88,65 @@ class BlogController extends Controller
 
 
     // This method will update blogs
-    public function update()
+    public function update($id, Request $request)
     {
+        $blog = MyModel::find($id);
+        if ($blog == null) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Blog not found'
+            ], 500);
+        } else {
+            try {
+                $validator = Validator::make($request->all(), [
+                    'title' => 'required|min:10',
+                    'author' => 'required|min:3',
+                    'description' => 'nullable|string',
+                    'shortDes' => 'nullable|string'
+                ]);
+
+                if ($validator->fails()) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Please fix the errors',
+                        'errors' => $validator->errors()
+                    ], 400);
+                }
+
+                $blog->fill($request->only(['title', 'author', 'description', 'shortDec']));
+                $blog->save();
+
+                // save image here
+
+                $tempImage = TempImage::find($request->image_id);
+
+                if ($tempImage != null) {
+
+                    $imageExtArray = explode('.', $tempImage->name);
+                    $ext = last($imageExtArray);
+                    $imageName = time() . '-' . $blog->id . '.' . $ext;
+
+                    $blog->image = $imageName;
+                    $blog->save();
+
+
+                    $sourcePath = public_path('uploads/temp/' . $tempImage->name);
+                    $destPath = public_path('uploads/blogs/' . $imageName);
+                    File::copy($sourcePath, $destPath);
+                }
+
+                return response()->json([
+                    'status' => true,
+                    'message' => 'Data updated successfully',
+                    'data' => $blog
+                ], 201);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'An error occurred: ' . $e->getMessage()
+                ], 500);
+            }
+        }
 
     }
 
