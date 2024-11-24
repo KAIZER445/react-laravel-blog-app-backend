@@ -91,64 +91,66 @@ class BlogController extends Controller
     public function update($id, Request $request)
     {
         $blog = MyModel::find($id);
+    
         if ($blog == null) {
             return response()->json([
                 'status' => false,
                 'message' => 'Blog not found'
-            ], 500);
-        } else {
-            try {
-                $validator = Validator::make($request->all(), [
-                    'title' => 'required|min:10',
-                    'author' => 'required|min:3',
-                    'description' => 'nullable|string',
-                    'shortDes' => 'nullable|string'
-                ]);
-
-                if ($validator->fails()) {
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'Please fix the errors',
-                        'errors' => $validator->errors()
-                    ], 400);
-                }
-
-                $blog->fill($request->only(['title', 'author', 'description', 'shortDec']));
-                $blog->save();
-
-                // save image here
-
-                $tempImage = TempImage::find($request->image_id);
-
-                if ($tempImage != null) {
-
-                    $imageExtArray = explode('.', $tempImage->name);
-                    $ext = last($imageExtArray);
-                    $imageName = time() . '-' . $blog->id . '.' . $ext;
-
-                    $blog->image = $imageName;
-                    $blog->save();
-
-
-                    $sourcePath = public_path('uploads/temp/' . $tempImage->name);
-                    $destPath = public_path('uploads/blogs/' . $imageName);
-                    File::copy($sourcePath, $destPath);
-                }
-
-                return response()->json([
-                    'status' => true,
-                    'message' => 'Data updated successfully',
-                    'data' => $blog
-                ], 201);
-            } catch (\Exception $e) {
+            ], 404);
+        }
+    
+        try {
+            // Merge existing values into the request if they are not provided
+            $data = $request->all();
+            $data['title'] = $data['title'] ?? $blog->title;
+            $data['author'] = $data['author'] ?? $blog->author;
+    
+            $validator = Validator::make($data, [
+                'title' => 'required|min:10',
+                'author' => 'required|min:3',
+                'description' => 'nullable|string',
+                'shortDec' => 'nullable|string'
+            ]);
+    
+            if ($validator->fails()) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'An error occurred: ' . $e->getMessage()
-                ], 500);
+                    'message' => 'Please fix the errors',
+                    'errors' => $validator->errors()
+                ], 400);
             }
+    
+            $blog->fill($request->only(['title', 'author', 'description', 'shortDec']));
+            $blog->save();
+    
+            // Handle image if provided
+            $tempImage = TempImage::find($request->image_id);
+            if ($tempImage != null) {
+                $imageExtArray = explode('.', $tempImage->name);
+                $ext = last($imageExtArray);
+                $imageName = time() . '-' . $blog->id . '.' . $ext;
+    
+                $blog->image = $imageName;
+                $blog->save();
+    
+                $sourcePath = public_path('uploads/temp/' . $tempImage->name);
+                $destPath = public_path('uploads/blogs/' . $imageName);
+                File::copy($sourcePath, $destPath);
+            }
+    
+            return response()->json([
+                'status' => true,
+                'message' => 'Data updated successfully',
+                'data' => $blog
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
         }
-
     }
+    
 
     // This method will delete blogs
     public function destroy(int $id)
