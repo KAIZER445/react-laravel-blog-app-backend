@@ -91,27 +91,27 @@ class BlogController extends Controller
     public function update($id, Request $request)
     {
         $blog = MyModel::find($id);
-    
+
         if ($blog == null) {
             return response()->json([
                 'status' => false,
                 'message' => 'Blog not found'
             ], 404);
         }
-    
+
         try {
             // Merge existing values into the request if they are not provided
             $data = $request->all();
             $data['title'] = $data['title'] ?? $blog->title;
             $data['author'] = $data['author'] ?? $blog->author;
-    
+
             $validator = Validator::make($data, [
                 'title' => 'required|min:10',
                 'author' => 'required|min:3',
                 'description' => 'nullable|string',
                 'shortDec' => 'nullable|string'
             ]);
-    
+
             if ($validator->fails()) {
                 return response()->json([
                     'status' => false,
@@ -119,25 +119,25 @@ class BlogController extends Controller
                     'errors' => $validator->errors()
                 ], 400);
             }
-    
+
             $blog->fill($request->only(['title', 'author', 'description', 'shortDec']));
             $blog->save();
-    
+
             // Handle image if provided
             $tempImage = TempImage::find($request->image_id);
             if ($tempImage != null) {
                 $imageExtArray = explode('.', $tempImage->name);
                 $ext = last($imageExtArray);
                 $imageName = time() . '-' . $blog->id . '.' . $ext;
-    
+
                 $blog->image = $imageName;
                 $blog->save();
-    
+
                 $sourcePath = public_path('uploads/temp/' . $tempImage->name);
                 $destPath = public_path('uploads/blogs/' . $imageName);
                 File::copy($sourcePath, $destPath);
             }
-    
+
             return response()->json([
                 'status' => true,
                 'message' => 'Data updated successfully',
@@ -150,11 +150,43 @@ class BlogController extends Controller
             ], 500);
         }
     }
-    
+
 
     // This method will delete blogs
-    public function destroy(int $id)
+    public function destroy($id)
     {
+        $blog = MyModel::find($id);
 
+        if ($blog == null) {
+            return response()->json(
+                [
+                    'status' => false,
+                    'message' => 'Blog not found',
+                ]
+            );
+        }
+
+
+        $imagePath = public_path('uploads/blogs/' . $blog->image);
+
+        File::delete($imagePath);
+
+
+
+        if ($blog->delete()) {
+            return response()->json(
+                [
+                    'status' => true,
+                    'message' => 'Blog deleted successfully',
+                ]
+            );
+        }
+
+        return response()->json(
+            [
+                'status' => false,
+                'message' => 'Failed to delete blog',
+            ]
+        );
     }
 }
